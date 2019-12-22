@@ -1,5 +1,8 @@
+# coding: utf-8
 class PaperPreviewWorker
   require 'cloudinary'
+  require 'fileutils'
+  require 'find'
   require 'sidekiq'
   require 'sidekiq_status'
   require 'whedon'
@@ -11,16 +14,21 @@ class PaperPreviewWorker
 
   SidekiqStatus::Container.ttl = 600
 
+  Sidekiq.logger.level = Logger::DEBUG
+
   def perform(repository_address, journal, custom_branch=nil, sha)
     ENV["CURRENT_YEAR"] = '3030'
     ENV["CURRENT_VOLUME"] = '1'
     ENV["CURRENT_ISSUE"] = '1'
 
+    FileUtils.mkdir_p("tmp")
+
+    cmd = "cd tmp && git clone #{repository_address} #{sha}"
     if custom_branch
-      result, stderr, status = Open3.capture3("cd tmp && git clone --single-branch --branch #{custom_branch} #{repository_address} #{sha}")
-    else
-      result, stderr, status = Open3.capture3("cd tmp && git clone #{repository_address} #{sha}")
+      cmd = "cd tmp && git clone --single-branch --branch #{custom_branch} #{repository_address} #{sha}"
     end
+    logger.debug(cmd)
+    result, stderr, status = Open3.capture3(cmd)
 
     if !status.success?
       return result, stderr, status
@@ -34,6 +42,7 @@ class PaperPreviewWorker
       journal_name = "Journal of Open Source Education"
     end
 
+    logger.debug(paper_paths)
     if paper_paths.empty?
       self.payload = "Can't find any papers to compile. Make sure there's a file named <code>paper.md</code> in your repository."
       abort("Can't find any papers to compile.")
