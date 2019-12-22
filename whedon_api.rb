@@ -5,6 +5,7 @@ require 'date'
 require 'sinatra/base'
 require 'fileutils'
 require 'json'
+require 'logging'
 require 'octokit'
 require 'rest-client'
 require 'securerandom'
@@ -17,6 +18,9 @@ include GitHub
 
 class WhedonApi < Sinatra::Base
   register Sinatra::ConfigFile
+  use Rack::Logger
+  set :logger, Logger.new(STDERR)
+  logger.level = Logger::DEBUG
 
   set :views, Proc.new { File.join(root, "responses") }
 
@@ -28,7 +32,7 @@ class WhedonApi < Sinatra::Base
     set_configs unless journal_configs_initialized?
 
     if %w[dispatch].include? request.path_info.split('/')[1]
-      sleep(2) unless testing? # This seems to help with auto-updating GitHub issue threads
+      sleep(2) if github? and not testing? # This seems to help with auto-updating GitHub issue threads
       params = JSON.parse(request.env["rack.input"].read)
 
       # Only work with issues. Halt if there isn't an issue in the JSON
@@ -62,16 +66,24 @@ class WhedonApi < Sinatra::Base
     ENV['RACK_ENV'] == "test"
   end
 
+  def github?
+    ENV['RACK_ENV'] != "biohackrxiv"
+  end
+
   def serialized_config
     @config.to_h
   end
 
   def set_configs
     # 'settings.journals' comes from sinatra/config_file
+    logger.info("Configuring #{settings}")
     settings.journals.each do |journal|
+      logger.debug("Loading config for journal #{journal} from sinatra/config_file")
       journal.each do |nwo, params|
         team_id = params["editor_team_id"]
-        params["editors"] = github_client.team_members(team_id).collect { |e| e.login }.sort
+        if not params["editors"]
+          params["editors"] = github_client.team_members(team_id).collect { |e| e.login }.sort
+        end
         settings.configs[nwo] = OpenStruct.new params
       end
     end
