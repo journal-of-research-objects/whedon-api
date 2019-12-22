@@ -18,10 +18,8 @@ include GitHub
 
 class WhedonApi < Sinatra::Base
   register Sinatra::ConfigFile
-  use Rack::Logger
-  set :logger, Logger.new(STDERR)
-  logger.level = Logger::DEBUG
 
+  set :logging, Logger::DEBUG if ENV['APP_ENV'] == 'development'
   set :views, Proc.new { File.join(root, "responses") }
 
   config_file "config/settings-#{ENV['RACK_ENV']}.yml"
@@ -74,9 +72,17 @@ class WhedonApi < Sinatra::Base
     @config.to_h
   end
 
+  def show_settings
+    logger.info("APP_ENV=#{ENV['APP_ENV']}") # rack configurator
+    logger.info(":environment=#{settings.environment}")
+    logger.info("RACK_ENV=#{ENV['RACK_ENV']}") # old style, used for config
+    logger.info("Configuring #{settings}")
+    logger.debug("DEBUG DEBUG!!!")
+  end
+
   def set_configs
     # 'settings.journals' comes from sinatra/config_file
-    logger.info("Configuring #{settings}")
+    show_settings
     settings.journals.each do |journal|
       logger.debug("Loading config for journal #{journal} from sinatra/config_file")
       journal.each do |nwo, params|
@@ -86,6 +92,7 @@ class WhedonApi < Sinatra::Base
         end
         settings.configs[nwo] = OpenStruct.new params
       end
+      logger.info(settings)
     end
 
     settings.initialized = true
