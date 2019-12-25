@@ -26,7 +26,6 @@ class PaperPreviewWorker
     ENV["CURRENT_VOLUME"] = '1'
     ENV["CURRENT_ISSUE"] = '1'
 
-    self.payload = "Looks like we failed to compile the PDF."
     begin
       logger.debug(ENV["APP_ENV"])
       logger.debug("Using tmpdir #{tmpdir}")
@@ -46,10 +45,9 @@ class PaperPreviewWorker
       logger.info("paper_paths=#{paper_paths}")
 
       if paper_paths.empty?
-        self.payload = "Can't find any papers to compile. Make sure there's a file named <code>paper.md</code> in your repository."
-        abort("Can't find any papers to compile.")
+        raise "Can't find any papers to compile. Make sure there's a file named <code>paper.md</code> in your repository."
       elsif paper_paths.size == 1
-        Whedon::Paper.new(sha, paper_paths.first)
+        # Whedon::Paper.new(sha, paper_paths.first)
 
         latex_template_path = "#{Whedon.resources}/#{journal}/latex.template"
         csl_file = "#{Whedon.resources}/#{journal}/apa.csl"
@@ -83,22 +81,22 @@ class PaperPreviewWorker
 
         if File.exists?("#{directory}/#{sha}.pdf")
           response = Cloudinary::Uploader.upload("#{directory}/#{sha}.pdf")
-          self.payload = response['url']
+          raise "Failed to upload #{response['url']}"
         else
-          self.payload = "Looks like we failed to compile the PDF."
-          abort("Looks like we failed to compile the PDF")
+          raise "Looks like we failed to compile the PDF."
         end
       else
-        self.payload = "There seems to be more than one paper.md present. Aborting..."
-        abort("There seems to be more than one paper.md present. Aborting...")
+        raise "There seems to be more than one paper.md present. Aborting..."
       end
     rescue Exception => e
-      logger.info("Rescue #{e.message}")
+      logger.error("#{e.message}")
       self.payload = e.message
       if ENV['APP_ENV'] == "development"
-        self.payload = e.backtrace
+        debug_info = e.message + "<br>" + e.backtrace.join("<br>")
+        self.payload = debug_info
+        logger.error(debug_info.gsub("<br>","\n"))
       end
-      abort(self.payload)
+      raise e.message
     end
   end
 
