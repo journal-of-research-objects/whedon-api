@@ -22,7 +22,7 @@ class WhedonApi < Sinatra::Base
   set :logging, Logger::DEBUG if ENV['APP_ENV'] == 'development'
   set :views, Proc.new { File.join(root, "responses") }
 
-  config_file "config/settings-#{ENV['RACK_ENV']}.yml"
+  config_file "config/settings-#{ENV['APP_ENV']}.yml"
   set :configs, {}
   set :initialized, false
 
@@ -61,11 +61,11 @@ class WhedonApi < Sinatra::Base
   end
 
   def testing?
-    ENV['RACK_ENV'] == "test"
+    ENV['APP_ENV'] == "test"
   end
 
   def github?
-    ENV['RACK_ENV'] != "biohackrxiv"
+    ENV['APP_ENV'] != "biohackrxiv"
   end
 
   def serialized_config
@@ -75,7 +75,7 @@ class WhedonApi < Sinatra::Base
   def show_settings
     logger.info("APP_ENV=#{ENV['APP_ENV']}") # rack configurator
     logger.info(":environment=#{settings.environment}")
-    logger.info("RACK_ENV=#{ENV['RACK_ENV']}") # old style, used for config
+    logger.info("APP_ENV=#{ENV['APP_ENV']}") # dev/test/prod setting
     logger.info("Configuring #{settings}")
     logger.debug("DEBUG DEBUG!!!")
   end
