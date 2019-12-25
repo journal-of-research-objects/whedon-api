@@ -53,6 +53,11 @@ EDITOR-ONLY TASKS
 
 ```
 
+## Generating PDFs
+
+Whedon-api also provides a default front page which allows the generating
+of PDFs for multiple journals. See https://whedon.theoj.org/
+
 ## Development
 
 Is it green? [![Build Status](https://travis-ci.org/openjournals/whedon-api.svg?branch=master)](https://travis-ci.org/openjournals/whedon-api)
@@ -70,3 +75,10 @@ Is it green? [![Build Status](https://travis-ci.org/openjournals/whedon-api.svg?
 To deploy a version of Whedon on Heroku, an `app.json` template is provided:
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/openjournals/whedon-api)
+
+For installing locally see the [DEVELOPMENT](./doc/DEVELOPMENT.org) doc.
+
+## License
+
+The source code for Whedon is published under the permissive MIT or
+expat [license](LICENSE).

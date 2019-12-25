@@ -1,0 +1,49 @@
+* INSTALL
+
+A Heroku template is provided (see README). It is also possible to run
+whedon and its API locally.
+
+** GNU Guix
+
+In this section we describe a GNU Guix installation. Guix is rigorous
+when it comes to controlling the dependency graph and it is how whedon
+is deployed for biohackrxiv. Feel free to use something else.
+
+Whedon api is a sinatra application. To run Ruby bundler a
+number of packages are required:
+
+#+BEGIN_SRC
+guix package -i nss-certs git linux-libre-headers \
+    make gcc-toolchain ruby bundler icu4c zlib cmake pkg-config \
+    openssl ghc-pandoc python-pandocfilters texlive redis \
+    ghc-pandoc ghc-pandoc-citeproc ghc-pandoc-types \
+    -p ~/opt/jro
+#+END_SRC
+
+Add ~go-ipfs~ when you want to run that.
+
+Next create a clean environment and run the services:
+
+#+BEGIN_SRC sh
+cd whedon-api
+# start from a clean envioronment
+env -i /bin/bash --login --noprofile --norc
+. ~/opt/jro/etc/profile
+bundle
+export HOME=/home/user
+export APP_ENV=development
+#+END_SRC
+
+Start redis and sidekiq in one terminal/screen. Note that valid
+values for APP_ENV are development, test and production which
+are mirrored in the config/settings-$APP_ENV.yaml files.
+
+: nohup redis-server  &
+: env RUBYLIB=../whedon/lib sidekiq -c 1 -t 25 -r ./workers.rb
+
+Note that the 'whedon' source code needs to be one directory up
+in above RUBYLIB example.
+
+Run the service now with
+
+: rackup
