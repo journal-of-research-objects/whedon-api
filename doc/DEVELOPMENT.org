@@ -47,3 +47,7 @@ in above RUBYLIB example.
 Run the service now with
 
 : rackup
+
+or with a default journal
+
+: env WHEDON_JOURNAL=biohackrxiv rackup

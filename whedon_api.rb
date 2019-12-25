@@ -16,6 +16,24 @@ require 'pry'
 
 include GitHub
 
+class JournalConfig < OpenStruct
+
+  def github?
+   use_github
+  end
+
+  def editors
+    # Lazy loading of editors
+    return @editors if @editors
+    if github?
+      @editors = github_client.team_members(editor_team_id).collect { |e| e.login }.sort
+    else
+      raise "Use of editors for #{nwo} is undefined"
+    end
+    @editors
+  end
+end
+
 class WhedonApi < Sinatra::Base
   register Sinatra::ConfigFile
 
@@ -27,7 +45,7 @@ class WhedonApi < Sinatra::Base
   set :initialized, false
 
   before do
-    set_configs unless journal_configs_initialized?
+    load_configs unless journal_configs_initialized?
 
     if %w[dispatch].include? request.path_info.split('/')[1]
       sleep(2) if github? and not testing? # This seems to help with auto-updating GitHub issue threads
@@ -49,6 +67,7 @@ class WhedonApi < Sinatra::Base
       @issue_id = params['issue']['number']
       @nwo = params['repository']['full_name']
       @config = settings.configs[@nwo]
+      logger.debug(@config)
 
       halt 422 unless @config # We probably want to restrict this
     else
@@ -64,35 +83,30 @@ class WhedonApi < Sinatra::Base
     ENV['APP_ENV'] == "test"
   end
 
-  def github?
-    ENV['APP_ENV'] != "biohackrxiv"
-  end
-
   def serialized_config
     @config.to_h
   end
 
   def show_settings
-    logger.info("APP_ENV=#{ENV['APP_ENV']}") # rack configurator
     logger.info(":environment=#{settings.environment}")
     logger.info("APP_ENV=#{ENV['APP_ENV']}") # dev/test/prod setting
+    logger.info("WHEDON_JOURNAL=#{ENV['WHEDON_JOURNAL']}") # set default
     logger.info("Configuring #{settings}")
-    logger.debug("DEBUG DEBUG!!!")
+    logger.debug("DEBUG DEBUG!!!") # warn only when in debug mode
   end
 
-  def set_configs
+  def load_configs
     # 'settings.journals' comes from sinatra/config_file
     show_settings
     settings.journals.each do |journal|
       logger.debug("Loading config for journal #{journal} from sinatra/config_file")
       journal.each do |nwo, params|
-        team_id = params["editor_team_id"]
-        if not params["editors"]
-          params["editors"] = github_client.team_members(team_id).collect { |e| e.login }.sort
-        end
-        settings.configs[nwo] = OpenStruct.new params
+        params["nwo"] = nwo
+        settings.configs[nwo] = JournalConfig.new params
+        logger.debug("Fetch editors for #{nwo}")
+        logger.info(settings.configs[nwo].editors)
       end
-      logger.info(settings)
+      logger.info(settings.configs)
     end
 
     settings.initialized = true
