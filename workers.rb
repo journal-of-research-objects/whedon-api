@@ -21,50 +21,41 @@ class PaperPreviewWorker
 
   Sidekiq.logger.level = Logger::DEBUG
 
-  def perform(repository_address, journal, custom_branch=nil, sha)
+  def perform(repository_address, journal, journal_name, custom_branch=nil, sha, tmpdir)
     ENV["CURRENT_YEAR"] = '3030'
     ENV["CURRENT_VOLUME"] = '1'
     ENV["CURRENT_ISSUE"] = '1'
 
-    FileUtils.mkdir_p("tmp")
+    self.payload = "Looks like we failed to compile the PDF."
+    begin
+      logger.debug(ENV["APP_ENV"])
+      logger.debug("Using tmpdir #{tmpdir}")
+      raise "Can not access directory #{tmpdir}" if not File.directory?(tmpdir)
+      cmd = "cd #{tmpdir} && git clone #{repository_address} #{sha}"
+      if custom_branch
+        cmd = "cd #{tmpdir} && git clone --single-branch --branch #{custom_branch} #{repository_address} #{sha}"
+      end
+      logger.debug(cmd)
+      result, stderr, status = Open3.capture3(cmd)
 
-    cmd = "cd tmp && git clone #{repository_address} #{sha}"
-    if custom_branch
-      cmd = "cd tmp && git clone --single-branch --branch #{custom_branch} #{repository_address} #{sha}"
-    end
-    logger.debug(cmd)
-    result, stderr, status = Open3.capture3(cmd)
-
-    if !status.success?
-      return result, stderr, status
-    end
-
-    paper_paths = find_paper_paths("tmp/#{sha}")
-
-    if journal == "JOSS"
-      journal_name = "Journal of Open Source Software"
-    elsif journal == "JOSE"
-      journal_name = "Journal of Open Source Education"
-    end
-
-    logger.debug(paper_paths)
-    if paper_paths.empty?
-      self.payload = "Can't find any papers to compile. Make sure there's a file named <code>paper.md</code> in your repository."
-      abort("Can't find any papers to compile.")
-    elsif paper_paths.size == 1
-      begin
-        Whedon::Paper.new(sha, paper_paths.first)
-      rescue RuntimeError => e
-        self.payload = e.message
-        abort("Can't find any papers to compile.")
-        return
+      if !status.success?
+        return result, stderr, status
       end
 
-      latex_template_path = "#{Whedon.resources}/#{journal}/latex.template"
-      csl_file = "#{Whedon.resources}/#{journal}/apa.csl"
-      directory = File.dirname(paper_paths.first)
-      # TODO: may eventually want to swap out the latex template
-      `cd #{directory} && pandoc \
+      paper_paths = find_paper_paths("#{tmpdir}/#{sha}")
+      logger.info("paper_paths=#{paper_paths}")
+
+      if paper_paths.empty?
+        self.payload = "Can't find any papers to compile. Make sure there's a file named <code>paper.md</code> in your repository."
+        abort("Can't find any papers to compile.")
+      elsif paper_paths.size == 1
+        Whedon::Paper.new(sha, paper_paths.first)
+
+        latex_template_path = "#{Whedon.resources}/#{journal}/latex.template"
+        csl_file = "#{Whedon.resources}/#{journal}/apa.csl"
+        directory = File.dirname(paper_paths.first)
+        # TODO: may eventually want to swap out the latex template
+        `cd #{directory} && pandoc \
       -V repository="#{repository_address}" \
       -V archive_doi="PENDING" \
       -V paper_url="PENDING" \
@@ -90,21 +81,30 @@ class PaperPreviewWorker
       --csl=#{csl_file} \
       --template #{latex_template_path}`
 
-      if File.exists?("#{directory}/#{sha}.pdf")
-        response = Cloudinary::Uploader.upload("#{directory}/#{sha}.pdf")
-        self.payload = response['url']
+        if File.exists?("#{directory}/#{sha}.pdf")
+          response = Cloudinary::Uploader.upload("#{directory}/#{sha}.pdf")
+          self.payload = response['url']
+        else
+          self.payload = "Looks like we failed to compile the PDF."
+          abort("Looks like we failed to compile the PDF")
+        end
       else
-        self.payload = "Looks like we failed to compile the PDF."
-        abort("Looks like we failed to compile the PDF")
+        self.payload = "There seems to be more than one paper.md present. Aborting..."
+        abort("There seems to be more than one paper.md present. Aborting...")
       end
-    else
-      self.payload = "There seems to be more than one paper.md present. Aborting..."
-      abort("There seems to be more than one paper.md present. Aborting...")
+    rescue Exception => e
+      logger.info("Rescue #{e.message}")
+      self.payload = e.message
+      if ENV['APP_ENV'] == "development"
+        self.payload = e.backtrace
+      end
+      abort(self.payload)
     end
   end
 
   def find_paper_paths(search_path=nil)
-    search_path ||= "tmp/#{review_issue_id}"
+    search_path ||= "#{tmpdir}/#{review_issue_id}"
+    logger.debug(search_path)
     paper_paths = []
 
     Find.find(search_path) do |path|

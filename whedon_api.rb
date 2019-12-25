@@ -10,6 +10,7 @@ require 'octokit'
 require 'rest-client'
 require 'securerandom'
 require 'sinatra/config_file'
+require 'tmpdir'
 require 'whedon'
 require 'yaml'
 require 'pry'
@@ -464,9 +465,27 @@ class WhedonApi < Sinatra::Base
 
   post '/preview' do
     sha = SecureRandom.hex
+    tmpdir = Dir.tmpdir + '/' + sha
+    FileUtils.mkdir_p(tmpdir)
+    journals = settings.configs
+    logger.info journals
+    logger.info params
+    logger.info params[:journal]
+    journal = nil
+    journals.each do |k,v|
+      logger.info k
+      logger.info v
+
+      if params[:journal].downcase == v.journal_alias.downcase
+        journal = v
+        break
+      end
+    end
+    logger.info journal
+
     branch = params[:branch].empty? ? nil : params[:branch]
     logger.debug("Invoke preview job #{sha} for #{params[:journal]}: #{params[:repository]} branch=#{branch ?  branch : 'default'}")
-    job_id = PaperPreviewWorker.perform_async(params[:repository], params[:journal], branch, sha)
+    job_id = PaperPreviewWorker.perform_async(params[:repository], params[:journal], journal.site_name, branch, sha, tmpdir)
     redirect "/preview?id=#{job_id}"
   end
 
