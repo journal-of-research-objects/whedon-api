@@ -96,7 +96,7 @@ class WhedonApi < Sinatra::Base
   end
 
   def load_configs
-    # 'settings.journals' comes from sinatra/config_file
+    # 'settings.journals' comes from config/settings_$APP_ENV.yml
     show_settings
     settings.journals.each do |journal|
       logger.debug("Loading config for journal #{journal} from sinatra/config_file")

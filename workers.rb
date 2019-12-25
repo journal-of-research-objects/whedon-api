@@ -1,4 +1,9 @@
 # coding: utf-8
+
+# This worker generates a PDF from the (default) web interface from
+# information uploaded by a user (github repo and branch).
+# Note that this code duplicates code in Whedon and it should be
+# merged
 class PaperPreviewWorker
   require 'cloudinary'
   require 'fileutils'
@@ -110,6 +115,7 @@ class PaperPreviewWorker
   end
 end
 
+# This worker reminds reviewers
 class ReviewReminderWorker
   require_relative 'github'
   require_relative 'config_helper'
@@ -146,6 +152,7 @@ class ReviewReminderWorker
   end
 end
 
+# This worker walks a bibtex file and checks for valid DOIs
 class DOIWorker
   require_relative 'github'
   require_relative 'config_helper'
@@ -330,6 +337,8 @@ class DOIWorker
   end
 end
 
+# This worker does some basic checking of a repo. Check out the
+# repo and see if a license file exists
 class RepoWorker
   require_relative 'github'
   require_relative 'config_helper'
@@ -382,9 +391,10 @@ class RepoWorker
   end
 end
 
-# This is the Sidekiq worker that processes PDFs. It leverages the Whedon gem to
-# carry out the majority of its actions. Where possible, we try and capture
-# errors from any of the executed tasks and report them back to the review issue
+# This is the Sidekiq worker that processes PDFs. It leverages the
+# Whedon gem to carry out the majority of its actions. Where possible,
+# we try and capture errors from any of the executed tasks and report
+# them back to the review issue
 class PDFWorker
   require_relative 'github'
   require_relative 'config_helper'
@@ -440,9 +450,7 @@ class PDFWorker
   end
 end
 
-# This is the Sidekiq worker that processes PDFs. It leverages the Whedon gem to
-# carry out the majority of its actions. Where possible, we try and capture
-# errors from any of the executed tasks and report them back to the review issue
+# This is the Sidekiq worker that kicks a publication PDF live
 class DepositWorker
   require_relative 'github'
   require_relative 'config_helper'
