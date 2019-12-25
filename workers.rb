@@ -79,11 +79,13 @@ class PaperPreviewWorker
       --csl=#{csl_file} \
       --template #{latex_template_path}`
 
-        if File.exists?("#{directory}/#{sha}.pdf")
-          response = Cloudinary::Uploader.upload("#{directory}/#{sha}.pdf")
-          raise "Failed to upload #{response['url']}"
+        pdf = "#{directory}/#{sha}.pdf"
+        raise "Looks like we failed to compile the PDF." if not File.exists?(pdf)
+        if ENV['WHEDON_DEPLOY']=='local'
+          self.payload = "#{directory}/#{sha}.pdf"
         else
-          raise "Looks like we failed to compile the PDF."
+          response = Cloudinary::Uploader.upload("#{directory}/#{sha}.pdf")
+          self.payload = response['url'] # success!
         end
       else
         raise "There seems to be more than one paper.md present. Aborting..."

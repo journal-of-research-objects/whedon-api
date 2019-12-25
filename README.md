@@ -72,6 +72,12 @@ Is it green? [![Build Status](https://travis-ci.org/openjournals/whedon-api.svg?
 
 ## Deploying
 
+Whedon uses the following environment variables:
+
+1. APP_ENV: Rack standard 'development', 'test' and 'production' modes (defaults to test)
+2. WHEDON_JOURNAL: Default journal to target (defaults to none)
+3. WHEDON_DEPLOY: 'local' or 'heroku' (defaults to heroku)
+
 To deploy a version of Whedon on Heroku, an `app.json` template is provided:
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/openjournals/whedon-api)
