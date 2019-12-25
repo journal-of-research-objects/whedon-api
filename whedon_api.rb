@@ -103,8 +103,6 @@ class WhedonApi < Sinatra::Base
       journal.each do |nwo, params|
         params["nwo"] = nwo
         settings.configs[nwo] = JournalConfig.new params
-        logger.debug("Fetch editors for #{nwo}")
-        logger.info(settings.configs[nwo].editors)
       end
       logger.info(settings.configs)
     end
