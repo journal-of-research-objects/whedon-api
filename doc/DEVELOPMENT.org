@@ -5,9 +5,10 @@ whedon and its API locally.
 
 ** GNU Guix
 
-In this section we describe a GNU Guix installation. Guix is rigorous
-when it comes to controlling the dependency graph and it is how whedon
-is deployed for biohackrxiv. Feel free to use something else.
+In this section we describe a GNU Guix installation suitable for
+development. Guix is rigorous when it comes to controlling the
+dependency graph and it is how whedon is deployed for
+biohackrxiv. Feel free to use something else.
 
 Whedon api is a sinatra application. To run Ruby bundler a
 number of packages are required:

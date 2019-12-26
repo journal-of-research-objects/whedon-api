@@ -24,7 +24,7 @@ class JournalConfig < OpenStruct
     # Lazy loading of editors
     return @editors if @editors
     if use_github?
-      @editors = github_client.team_members(editor_team_id).collect { |e| e.login }.sort
+      @editors = github_client.team_members(self.editor_team_id).collect { |e| e.login }.sort
     else
       raise "Use of editors for #{nwo} is undefined"
     end

@@ -3,7 +3,7 @@ require 'rspec'
 require 'webmock/rspec'
 WebMock.disable_net_connect!(allow_localhost: true)
 
-ENV['APP_ENV'] = 'test'
+ENV['APP_ENV'] = 'test' # as defined by Rack
 
 require File.expand_path '../../whedon_api.rb', __FILE__
 require File.expand_path '../../workers.rb', __FILE__

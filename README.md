@@ -114,6 +114,10 @@ To start the API workers
 env APP_ENV=development WHEDON_JOURNAL=BioHackrXiv WHEDON_OUTPUT_DESTINATION=/home/wrk/tmp =local RUBYLIB=../whedon/lib sidekiq -c 1 -t 25 -r ./workers.rb
 ```
 
+## Testing
+
+    env RUBYLIB=../whedon/lib  rspec
+
 ## License
 
 The source code for Whedon is published under the permissive MIT or
