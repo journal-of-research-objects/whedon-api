@@ -18,16 +18,12 @@ include GitHub
 
 class JournalConfig < OpenStruct
 
-  # include WhedonConfig
-
-  def github?
-   use_github
-  end
+  include WhedonConfig
 
   def editors
     # Lazy loading of editors
     return @editors if @editors
-    if github?
+    if use_github?
       @editors = github_client.team_members(editor_team_id).collect { |e| e.login }.sort
     else
       raise "Use of editors for #{nwo} is undefined"
@@ -53,7 +49,7 @@ class WhedonApi < Sinatra::Base
     load_configs unless journal_configs_initialized?
 
     if %w[dispatch].include? request.path_info.split('/')[1]
-      sleep(2) if github? and not testing? # This seems to help with auto-updating GitHub issue threads
+      sleep(2) if use_github? and not testing? # This seems to help with auto-updating GitHub issue threads
       params = JSON.parse(request.env["rack.input"].read)
 
       # Only work with issues. Halt if there isn't an issue in the JSON

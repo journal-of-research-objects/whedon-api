@@ -56,35 +56,37 @@ class PaperPreviewWorker
         csl_file = "#{Whedon.resources}/#{journal}/apa.csl"
         directory = File.dirname(paper_paths.first)
         # TODO: may eventually want to swap out the latex template
-        `cd #{directory} && pandoc \
-      -V repository="#{repository_address}" \
-      -V archive_doi="PENDING" \
-      -V paper_url="PENDING" \
-      -V journal_name="#{journal_name}" \
-      -V formatted_doi="10.21105/#{journal}.0XXXX" \
-      -V review_issue_url="XXXX" \
-      -V graphics="true" \
-      -V issue="1" \
-      -V volume="1" \
-      -V page="1" \
-      -V logo_path="#{Whedon.resources}/#{journal}/logo.png" \
-      -V aas_logo_path="#{Whedon.resources}/#{journal}/aas-logo.png" \
-      -V year="2019" \
-      -V submitted="01 January 1900" \
-      -V published="01 January 3030" \
-      -V editor_name="Editor Name" \
-      -V editor_url="http://example.com" \
-      -V citation_author="Mickey Mouse et al." \
+        cmd = "cd #{directory} && pandoc \
+      -V repository='#{repository_address}' \
+      -V archive_doi='PENDING' \
+      -V paper_url='PENDING' \
+      -V journal_name='#{journal_name}' \
+      -V formatted_doi='10.21105/#{journal}.0XXXX' \
+      -V review_issue_url='XXXX' \
+      -V graphics='true' \
+      -V issue='1' \
+      -V volume='1' \
+      -V page='1' \
+      -V logo_path='#{Whedon.resources}/#{journal}/logo.png' \
+      -V aas_logo_path='#{Whedon.resources}/#{journal}/aas-logo.png' \
+      -V year='2019' \
+      -V submitted='01 January 1900' \
+      -V published='01 January 3030' \
+      -V editor_name='Editor Name' \
+      -V editor_url='http://example.com' \
+      -V citation_author='Mickey Mouse et al.' \
       -o #{sha}.pdf -V geometry:margin=1in \
       --pdf-engine=xelatex \
       --filter pandoc-citeproc #{File.basename(paper_paths.first)} \
       --from markdown+autolink_bare_uris \
       --csl=#{csl_file} \
-      --template #{latex_template_path}`
+      --template #{latex_template_path}"
 
+        logger.info(cmd)
+        stdout_and_stderr_str, status = Open3.capture2e(cmd)
         pdf = "#{directory}/#{sha}.pdf"
-        raise "Looks like we failed to compile the PDF." if not File.exists?(pdf)
-        dest = Whedon::output_destination
+        raise stdout_and_stderr_str if not File.exists?(pdf)
+        dest = output_destination()
         result_uri =
           if dest == :cloudinary
             Cloudinary::Uploader.upload("#{directory}/#{sha}.pdf")['url']
