@@ -475,6 +475,9 @@ class WhedonApi < Sinatra::Base
     erb :preview
   end
 
+  # This is the view page for the PDF generator. After picking up the
+  # repo it calls a worker and then redirects to get get preview page
+  # below, passing in the worker job_id
   post '/preview' do
     sha = SecureRandom.hex
     logger.info journals
@@ -489,10 +492,18 @@ class WhedonApi < Sinatra::Base
     redirect "/preview?id=#{job_id}"
   end
 
+  # Fetches the info - getting called by the worker id
   get '/preview' do
     begin
+      logger.debug("/preview with params #{params}")
       container = SidekiqStatus::Container.load(params[:id])
-      erb :status, :locals => { :status => container.status, :payload => container.payload }
+      logger.debug("container.status=#{container.status} payload #{container.payload}")
+      # with BioHackrXiv we just display the PDF
+      if container.status == "complete" and journal_biohackrxiv?
+        send_file(container.payload)
+      else
+        erb :status, :locals => { :status => container.status, :payload => container.payload }
+      end
     rescue SidekiqStatus::Container::StatusNotFound
       erb :status, :locals => { :status => 'missing' }
     end

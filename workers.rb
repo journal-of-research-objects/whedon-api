@@ -83,8 +83,9 @@ class PaperPreviewWorker
       --template #{latex_template_path}"
 
         logger.info(cmd)
-        stdout_and_stderr_str, status = Open3.capture2e(cmd)
         pdf = "#{directory}/#{sha}.pdf"
+        stdout_and_stderr_str, status = Open3.capture2e(cmd)
+        logger.info(status)
         raise stdout_and_stderr_str if not File.exists?(pdf)
         dest = output_destination()
         result_uri =
