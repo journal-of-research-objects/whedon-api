@@ -50,12 +50,15 @@ class PaperPreviewWorker
       if paper_paths.empty?
         raise "Can't find any papers to compile. Make sure there's a file named <code>paper.md</code> in your repository."
       elsif paper_paths.size == 1
-        Whedon::Paper.new(sha, paper_paths.first)
+        Whedon::Paper.new(sha, paper_paths.first) # checks for errors
 
         latex_template_path = "#{Whedon.resources}/#{journal}/latex.template"
         csl_file = "#{Whedon.resources}/#{journal}/apa.csl"
         directory = File.dirname(paper_paths.first)
         # TODO: may eventually want to swap out the latex template
+        time = Time.new
+        date = time.strftime("%d %b %Y")
+
         cmd = "cd #{directory} && pandoc \
       -V repository='#{repository_address}' \
       -V archive_doi='PENDING' \
@@ -69,9 +72,9 @@ class PaperPreviewWorker
       -V page='1' \
       -V logo_path='#{Whedon.resources}/#{journal}/logo.png' \
       -V aas_logo_path='#{Whedon.resources}/#{journal}/aas-logo.png' \
-      -V year='2019' \
-      -V submitted='01 January 1900' \
-      -V published='01 January 3030' \
+      -V year='#{time.year}' \
+      -V submitted='#{date}' \
+      -V published='pending' \
       -V editor_name='Editor Name' \
       -V editor_url='http://example.com' \
       -V citation_author='Mickey Mouse et al.' \
