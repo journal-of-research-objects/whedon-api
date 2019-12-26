@@ -12,6 +12,7 @@ class PaperPreviewWorker
   require 'sidekiq_status'
   require 'whedon'
 
+  include WhedonConfig
   include Sidekiq::Worker
   include SidekiqStatus::Worker
 
@@ -21,14 +22,16 @@ class PaperPreviewWorker
 
   Sidekiq.logger.level = Logger::DEBUG
 
-  def perform(repository_address, journal, journal_name, custom_branch=nil, sha, tmpdir)
+  def perform(repository_address, journal, journal_name, custom_branch=nil, sha)
     ENV["CURRENT_YEAR"] = '3030'
     ENV["CURRENT_VOLUME"] = '1'
     ENV["CURRENT_ISSUE"] = '1'
 
     begin
-      logger.debug(ENV["APP_ENV"])
+      logger.debug("APP_ENV=#{app_env}")
+      tmpdir = Dir.mktmpdir("whedon-")
       logger.debug("Using tmpdir #{tmpdir}")
+      FileUtils.mkdir_p(tmpdir)
       raise "Can not access directory #{tmpdir}" if not File.directory?(tmpdir)
       cmd = "cd #{tmpdir} && git clone #{repository_address} #{sha}"
       if custom_branch
@@ -47,7 +50,7 @@ class PaperPreviewWorker
       if paper_paths.empty?
         raise "Can't find any papers to compile. Make sure there's a file named <code>paper.md</code> in your repository."
       elsif paper_paths.size == 1
-        # Whedon::Paper.new(sha, paper_paths.first)
+        Whedon::Paper.new(sha, paper_paths.first)
 
         latex_template_path = "#{Whedon.resources}/#{journal}/latex.template"
         csl_file = "#{Whedon.resources}/#{journal}/apa.csl"
@@ -81,25 +84,36 @@ class PaperPreviewWorker
 
         pdf = "#{directory}/#{sha}.pdf"
         raise "Looks like we failed to compile the PDF." if not File.exists?(pdf)
-        if ENV['WHEDON_DEPLOY']=='local'
-          self.payload = "#{directory}/#{sha}.pdf"
-        else
-          response = Cloudinary::Uploader.upload("#{directory}/#{sha}.pdf")
-          self.payload = response['url'] # success!
-        end
+        dest = Whedon::output_destination
+        result_uri =
+          if dest == :cloudinary
+            Cloudinary::Uploader.upload("#{directory}/#{sha}.pdf")['url']
+          else
+            source = "#{directory}/#{sha}.pdf"
+            target = dest + "/" + sha + ".pdf"
+            FileUtils.cp(source,target)
+            target
+          end
+        logger.info("Returning URI #{result_uri}")
+        self.payload = result_uri
       else
         raise "There seems to be more than one paper.md present. Aborting..."
       end
     rescue Exception => e
       logger.error("#{e.message}")
       self.payload = e.message
-      if ENV['APP_ENV'] == "development"
+      if development?
         debug_info = e.message + "<br>" + e.backtrace.join("<br>")
         self.payload = debug_info
         logger.error(debug_info.gsub("<br>","\n"))
+      else
+        logger.debug("rm_rf #{tmpdir}")
+        FileUtils.rm_rf(tmpdir)
       end
       raise e.message
     end
+    logger.debug("rm_rf #{tmpdir}")
+    FileUtils.rm_rf(tmpdir)
   end
 
   def find_paper_paths(search_path=nil)

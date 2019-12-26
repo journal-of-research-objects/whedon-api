@@ -10,7 +10,6 @@ require 'octokit'
 require 'rest-client'
 require 'securerandom'
 require 'sinatra/config_file'
-require 'tmpdir'
 require 'whedon'
 require 'yaml'
 require 'pry'
@@ -18,6 +17,8 @@ require 'pry'
 include GitHub
 
 class JournalConfig < OpenStruct
+
+  # include WhedonConfig
 
   def github?
    use_github
@@ -36,9 +37,12 @@ class JournalConfig < OpenStruct
 end
 
 class WhedonApi < Sinatra::Base
+
+  include WhedonConfig
+
   register Sinatra::ConfigFile
 
-  set :logging, Logger::DEBUG if ENV['APP_ENV'] == 'development'
+  set :logging, Logger::DEBUG if development?
   set :views, Proc.new { File.join(root, "responses") }
 
   config_file "config/settings-#{ENV['APP_ENV']}.yml"
@@ -80,18 +84,14 @@ class WhedonApi < Sinatra::Base
     settings.initialized
   end
 
-  def testing?
-    ENV['APP_ENV'] == "test"
-  end
-
   def serialized_config
     @config.to_h
   end
 
   def show_settings
     logger.info(":environment=#{settings.environment}")
-    logger.info("APP_ENV=#{ENV['APP_ENV']}") # dev/test/prod setting
-    logger.info("WHEDON_JOURNAL=#{ENV['WHEDON_JOURNAL']}") # set default
+    logger.info("APP_ENV=#{app_env}") # dev/test/prod setting
+    logger.info("WHEDON_JOURNAL=#{journal}") # set default
     logger.info("Configuring #{settings}")
     logger.debug("DEBUG DEBUG!!!") # warn only when in debug mode
   end
@@ -454,6 +454,22 @@ class WhedonApi < Sinatra::Base
     end
   end
 
+  # Get hash of journals
+  def journals
+    settings.configs
+  end
+
+  # Case insensitive fetch of journal by alias
+  def get_journal_by_alias name
+    journal = nil
+    journals.each do |k,v|
+      if name.downcase == v.journal_alias.downcase
+        return v
+      end
+    end
+    raise "Can not find journal by alias #{name}"
+  end
+
   # The actual Sinatra URL path methods
   get '/heartbeat' do
     "BOOM boom. BOOM boom. BOOM boom."
@@ -465,25 +481,15 @@ class WhedonApi < Sinatra::Base
 
   post '/preview' do
     sha = SecureRandom.hex
-    # tmpdir = Dir.tmpdir + '/' + sha
-    tmpdir = Dir.mktmpdir("whedon-")
-    FileUtils.mkdir_p(tmpdir)
-    journals = settings.configs
     logger.info journals
     # params example {"repository"=>"https://github.com/brayanrodbajo/Deleteme", "branch"=>"patch-1", "journal"=>"biohackrxiv", "commit"=>"Compile paper"}
     logger.info params
-    journal = nil
-    journals.each do |k,v|
-      if params[:journal].downcase == v.journal_alias.downcase
-        journal = v
-        break
-      end
-    end
+    journal = get_journal_by_alias(params[:journal])
     logger.info journal
 
     branch = params[:branch].empty? ? nil : params[:branch]
     logger.debug("Invoke preview job #{sha} for #{params[:journal]} (#{journal.site_name}): #{params[:repository]} branch=#{branch ?  branch : 'default'}")
-    job_id = PaperPreviewWorker.perform_async(params[:repository], params[:journal], journal.site_name, branch, sha, tmpdir)
+    job_id = PaperPreviewWorker.perform_async(params[:repository], params[:journal], journal.site_name, branch, sha)
     redirect "/preview?id=#{job_id}"
   end
 

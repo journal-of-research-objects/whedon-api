@@ -72,17 +72,47 @@ Is it green? [![Build Status](https://travis-ci.org/openjournals/whedon-api.svg?
 
 ## Deploying
 
-Whedon uses the following environment variables:
-
-1. APP_ENV: Rack standard 'development', 'test' and 'production' modes (defaults to test)
-2. WHEDON_JOURNAL: Default journal to target (defaults to none)
-3. WHEDON_DEPLOY: 'local' or 'heroku' (defaults to heroku)
-
 To deploy a version of Whedon on Heroku, an `app.json` template is provided:
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/openjournals/whedon-api)
 
 For installing locally see the [DEVELOPMENT](./doc/DEVELOPMENT.org) doc.
+
+Whedon and whedon-api use the following environment variables:
+
+### APP_ENV
+
+Rack standard 'development', 'test' and 'production' modes (defaults to test)
+
+### WHEDON_JOURNAL
+
+Default journal to target for deployment of whedon (defaults to JOSS
+as a target). Values are
+
+1. None/joss (default heroku)
+2. BioHackrXiv (Guix container)
+
+### WHEDON_OUTPUT_DESTINATION
+
+This is where output goes. Values are
+
+1. None/cloudinary (default cloudinary)
+2. directory name (local directory - has to be valid)
+3. IPFS (submit to IPFS - nyi)
+
+### Examples
+
+To start whedon-api
+
+```bash
+env APP_ENV=development WHEDON_JOURNAL=BioHackrXiv rackup
+```
+
+To start the API workers
+
+```bash
+env APP_ENV=development WHEDON_JOURNAL=BioHackrXiv WHEDON_OUTPUT_DESTINATION=/home/wrk/tmp =local RUBYLIB=../whedon/lib sidekiq -c 1 -t 25 -r ./workers.rb
+```
 
 ## License
 
