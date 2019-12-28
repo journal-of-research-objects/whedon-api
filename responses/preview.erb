@@ -3,6 +3,7 @@
 <head>
   <title>Whedon preview page</title>
   <link rel="stylesheet" media="all" href="application.css" />
+  <link rel="stylesheet" media="all" href="preview.css" />
 </head>
 <body>
   <header class="container-fluid">
@@ -62,5 +63,21 @@
       </div>
     </div>
   </div>
+  <div>
+    &nbsp;
+    </div>
+  <footer class="page-footer font-small blue container-fluid">
+    <nav class="navbar navbar-expand-lg">
+      <div>
+        Site powered by <a href="https://github.com/openjournals/whedon-api">whedon-api</a>
+      </div>
+      <% if biohackrxiv? %>
+      <div class="genenetwork-brand">
+        Hosted by  GeneNetwork
+        <img width=30 src="genenetwork.png" />
+      </div>
+      <% end %>
+    </nav>
+  </footer>
 </body>
 </html>
