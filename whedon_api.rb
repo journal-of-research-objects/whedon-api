@@ -5,7 +5,7 @@ require 'date'
 require 'sinatra/base'
 require 'fileutils'
 require 'json'
-require 'logging'
+require 'logger'
 require 'octokit'
 require 'rest-client'
 require 'securerandom'
@@ -500,7 +500,12 @@ class WhedonApi < Sinatra::Base
       logger.debug("container.status=#{container.status} payload #{container.payload}")
       # with BioHackrXiv we just display the PDF
       if container.status == "complete" and journal_biohackrxiv?
-        send_file(container.payload)
+        fn = container.payload
+        if File.exist?(fn)
+          send_file(container.payload)
+        else
+           erb :status, :locals => { :status => "Can not find result <#{fn}>" }
+        end
       else
         erb :status, :locals => { :status => container.status, :payload => container.payload }
       end
