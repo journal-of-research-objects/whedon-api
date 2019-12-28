@@ -5,7 +5,7 @@
 # Note that this code duplicates code in Whedon and it should be
 # merged
 class PaperPreviewWorker
-  require 'cloudinary'
+  # require 'cloudinary' - require lazily
   require 'fileutils'
   require 'find'
   require 'sidekiq'
@@ -33,15 +33,17 @@ class PaperPreviewWorker
       logger.debug("Using tmpdir #{tmpdir}")
       FileUtils.mkdir_p(tmpdir)
       raise "Can not access directory #{tmpdir}" if not File.directory?(tmpdir)
-      cmd = "cd #{tmpdir} && git clone #{repository_address} #{sha}"
+
+      repo = repository_address.sub(/github.com/,"noname:noname@github.com")
+      cmd = "cd #{tmpdir} && git clone #{repo} #{sha}"
       if custom_branch
-        cmd = "cd #{tmpdir} && git clone --single-branch --branch #{custom_branch} #{repository_address} #{sha}"
+        cmd = "cd #{tmpdir} && git clone --single-branch --branch #{custom_branch} #{repo} #{sha}"
       end
       logger.debug(cmd)
       result, stderr, status = Open3.capture3(cmd)
 
       if !status.success?
-        return result, stderr, status
+        raise "Failed to clone #{cmd}"
       end
 
       paper_paths = find_paper_paths("#{tmpdir}/#{sha}")
@@ -93,6 +95,7 @@ class PaperPreviewWorker
         dest = output_destination()
         result_uri =
           if dest == :cloudinary
+            require 'cloudinary'
             Cloudinary::Uploader.upload("#{directory}/#{sha}.pdf")['url']
           else
             source = "#{directory}/#{sha}.pdf"
@@ -120,6 +123,7 @@ class PaperPreviewWorker
     end
     logger.debug("rm_rf #{tmpdir}")
     FileUtils.rm_rf(tmpdir)
+    # return value in self.payload
   end
 
   def find_paper_paths(search_path=nil)
