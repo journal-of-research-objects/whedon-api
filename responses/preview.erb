@@ -3,6 +3,7 @@
 <head>
   <title>Whedon preview page</title>
   <link rel="stylesheet" media="all" href="application.css" />
+  <link rel="stylesheet" media="all" href="preview.css" />
 </head>
 <body>
   <header class="container-fluid">
@@ -11,6 +12,11 @@
       <img src="logo_medium.png" width="48" height="48" />
       <img src="joss.svg" />
     </a>
+    <% if biohackrxiv? %>
+    <a class="navbar-brand" href="https://biohackrxiv.org/">
+      <img src="biohackrxiv-logo_medium.png" />
+    </a>
+    <% end %>
   </nav>
   </header>
 
@@ -18,7 +24,7 @@
     <div class="row justify-content-lg-center">
       <div class="col-lg-8">
         <h3>Whedon paper preview service</h3>
-        <p>You can use this page to test that your JOSS, JOSE or BioHackrXiv paper compiles properly before submitting.
+        <p>You can use this page to test that your <a href="https://joss.theoj.org/">JOSS</a>, <a href="https://jose.theoj.org/">JOSE</a> or <a href="https://biohackrxiv.org/">BioHackrXiv</a> paper compiles properly before submitting.
           Enter the location of your Git repository that contains your <code>paper.md</code> file, and pick
           which journal you'd like a preview for. For more information on how to format your paper, please
           <a href="https://joss.readthedocs.io/en/latest/submitting.html#example-paper-and-bibliography">take a look at our docs</a>.</p>
@@ -27,18 +33,18 @@
             <div class="row">
               <div class="col">
                 <label for="repository">Paper repository address</label>
-                <input placeholder="e.g. https://github.com/arfon/fidgit" class="form-control" type="text" name="repository" id="repository" />
+                <input placeholder="e.g. <%= repo %>" class="form-control" type="text" name="repository" id="repository" />
               </div>
               <div class="col">
                 <label for="branch">Custom branch (optional)</label>
-                <input placeholder="e.g. joss-paper-branch" class="form-control" type="text" name="branch" id="branch" />
+                <input placeholder="e.g. branch-name" class="form-control" type="text" name="branch" id="branch" />
               </div>
             </div>
           </div>
           <div class="form-group">
             <label for="journal">Compile paper for:</label>
             <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="journal" id="journaljoss" value="joss" checked>
+              <input class="form-check-input" type="radio" name="journal" id="journaljoss" value="joss" <%= ( biohackrxiv? ? '' : "checked='checked'" ) %> >
               <label class="form-check-label" for="inlineRadio1">JOSS</label>
             </div>
             <div class="form-check form-check-inline">
@@ -46,7 +52,7 @@
               <label class="form-check-label" for="inlineRadio2">JOSE</label>
             </div>
             <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="journal" id="journalbiohackrxiv" value="biohackrxiv">
+              <input class="form-check-input" type="radio" name="journal" id="journalbiohackrxiv" value="biohackrxiv" <%= ( biohackrxiv? ? "checked='checked'" : '' ) %> >
               <label class="form-check-label" for="inlineRadio2">BioHackrXiv</label>
             </div>
           </div>
@@ -57,5 +63,21 @@
       </div>
     </div>
   </div>
+  <div>
+    &nbsp;
+    </div>
+  <footer class="page-footer font-small blue container-fluid">
+    <nav class="navbar navbar-expand-lg">
+      <div>
+        Site powered by <a href="https://github.com/openjournals/whedon-api">whedon-api</a>
+      </div>
+      <% if biohackrxiv? %>
+      <div class="genenetwork-brand">
+        Hosted by  GeneNetwork
+        <img width=30 src="genenetwork.png" />
+      </div>
+      <% end %>
+    </nav>
+  </footer>
 </body>
 </html>

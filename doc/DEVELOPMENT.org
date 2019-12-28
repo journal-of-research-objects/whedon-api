@@ -18,6 +18,9 @@ guix package -i nss-certs git linux-libre-headers \
     make gcc-toolchain ruby bundler icu4c zlib cmake pkg-config \
     openssl ghc-pandoc python-pandocfilters texlive redis \
     ghc-pandoc ghc-pandoc-citeproc ghc-pandoc-types \
+    ruby-rack ruby-nokogiri ruby-rest-client ruby-sinatra \
+    ruby-rspec ruby-webmock ruby-byebug ruby-rake ruby-json \
+    ruby-unf ruby-unf-ext
     -p ~/opt/jro
 #+END_SRC
 
@@ -29,7 +32,15 @@ Next create a clean environment and run the services:
 cd whedon-api
 # start from a clean envioronment
 env -i /bin/bash --login --noprofile --norc
-. ~/opt/jro/etc/profile
+# optional: . ~/opt/jro/etc/profile
+export PATH=~/opt/jro/bin:$PATH
+export LIBRARY_PATH=~/opt/jro/lib
+export GIT_SSL_CAINFO=~/opt/jro/etc/ssl/certs/ca-certificates.crt
+# final pieces with bundler
+RUBYHASH=$(basename $(dirname $(dirname $RUBYBIN)))
+RUBYVER=$($RUBYBIN -e 'print RUBY_VERSION[0..3],0')
+export GEM_HOME=$HOME/.gem/$RUBYHASH/$RUBYVER
+export GEM_PATH=~/opt/jro/lib/ruby/vendor_ruby:$GEM_HOME
 bundle
 export HOME=/home/user
 export APP_ENV=development
@@ -40,14 +51,24 @@ values for APP_ENV are development, test and production which
 are mirrored in the config/settings-$APP_ENV.yaml files.
 
 : nohup redis-server  &
-: env RUBYLIB=../whedon/lib sidekiq -c 1 -t 25 -r ./workers.rb
+: env APP_ENV=development RUBYLIB=../whedon/lib sidekiq -c 1 -t 25 -r ./workers.rb
+
+or
+
+: env APP_ENV=development WHEDON_JOURNAL=BioHackrXiv WHEDON_OUTPUT_DESTINATION=/home/wrk/tmp =local RUBYLIB=../whedon/lib sidekiq -c 1 -t 25 -r ./workers.rb
+
+or
+
+: env APP_ENV=production WHEDON_JOURNAL=BioHackrXiv WHEDON_OUTPUT_DESTINATION=/home/wrk/tmp =local RUBYLIB=../whedon/lib sidekiq -c 4 -t 25 -r ./workers.rb
 
 Note that the 'whedon' source code needs to be one directory up
 in above RUBYLIB example.
 
 Run the service now with
 
-: rackup
+: env APP_ENV=development RUBYLIB=../whedon/lib rackup
+
+: env APP_ENV=development WHEDON_JOURNAL=BioHackrXiv RUBYLIB=../whedon/lib  rackup
 
 or with a default journal
 

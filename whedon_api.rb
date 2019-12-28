@@ -472,7 +472,9 @@ class WhedonApi < Sinatra::Base
   end
 
   get '/' do
-    erb :preview
+    repo = "https://github.com/arfon/fidgit"
+    repo = "https://github.com/journal-of-research-objects/Deleteme" if journal_biohackrxiv?
+    erb :preview, :locals => { :repo => repo }
   end
 
   # This is the view page for the PDF generator. After picking up the
