@@ -481,7 +481,8 @@ class WhedonApi < Sinatra::Base
   # repo it calls a worker and then redirects to get get preview page
   # below, passing in the worker job_id
   post '/preview' do
-    sha = SecureRandom.hex
+    # sha = SecureRandom.hex
+    sha = params.has_key?(:sha)? params[:sha] : SecureRandom.hex 
     logger.info journals
     # params example {"repository"=>"https://github.com/brayanrodbajo/Deleteme", "branch"=>"patch-1", "journal"=>"biohackrxiv", "commit"=>"Compile paper"}
     logger.info params
