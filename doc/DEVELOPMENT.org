@@ -37,12 +37,14 @@ export PATH=~/opt/jro/bin:$PATH
 export LIBRARY_PATH=~/opt/jro/lib
 export GIT_SSL_CAINFO=~/opt/jro/etc/ssl/certs/ca-certificates.crt
 # final pieces with bundler
+export HOME=/home/user
+RUBYBIN=`which ruby`
 RUBYHASH=$(basename $(dirname $(dirname $RUBYBIN)))
 RUBYVER=$($RUBYBIN -e 'print RUBY_VERSION[0..3],0')
 export GEM_HOME=$HOME/.gem/$RUBYHASH/$RUBYVER
 export GEM_PATH=~/opt/jro/lib/ruby/vendor_ruby:$GEM_HOME
+export PATH=$GEM_HOME/bin:$PATH
 bundle
-export HOME=/home/user
 export APP_ENV=development
 #+END_SRC
 
