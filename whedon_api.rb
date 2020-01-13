@@ -481,8 +481,7 @@ class WhedonApi < Sinatra::Base
   # repo it calls a worker and then redirects to get get preview page
   # below, passing in the worker job_id
   post '/preview' do
-    # sha = SecureRandom.hex
-    sha = params.has_key?(:sha)? params[:sha] : SecureRandom.hex 
+    sha = SecureRandom.hex
     logger.info journals
     # params example {"repository"=>"https://github.com/brayanrodbajo/Deleteme", "branch"=>"patch-1", "journal"=>"biohackrxiv", "commit"=>"Compile paper"}
     logger.info params
@@ -492,7 +491,15 @@ class WhedonApi < Sinatra::Base
     branch = params[:branch].empty? ? nil : params[:branch]
     logger.debug("Invoke preview job #{sha} for #{params[:journal]} (#{journal.site_name}): #{params[:repository]} branch=#{branch ?  branch : 'default'}")
     job_id = PaperPreviewWorker.perform_async(params[:repository], params[:journal], journal.site_name, branch, sha)
-    redirect "/preview?id=#{job_id}"
+    if params.has_key?(:retid)
+      if params[:retid]
+        require 'json'
+        content_type :json
+        return { :job_id => job_id}.to_json
+      end
+    else
+      redirect "/preview?id=#{job_id}"
+    end
   end
 
   # Fetches the info - getting called by the worker id
